@@ -112,7 +112,7 @@ const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   companyName: "Zack's Auto",
   tagline: "Curated Luxury & Performance Vehicles",
   logoUrl: "/logo.png",
-  email: "contact@zacksauto.com",
+  email: "contact@zacksauto.ma",
   phone: "+212 6 68 73 78 62",
   address: "Tangier / Casablanca, Morocco",
   website: "www.instagram.com/zacks__auto",
@@ -479,13 +479,13 @@ const INITIAL_INVOICES: Invoice[] = [
   },
 ];
 
-// LocalStorage Keys - bumped to v8 for instant live sync
+// LocalStorage Keys - bumped to v9 for instant live sync
 const KEYS = {
-  VEHICLES: "zaks_custom_inventory_v8",
-  CLIENTS: "zaks_custom_clients_v8",
-  PAYMENTS: "zaks_custom_payments_v8",
-  INVOICES: "zaks_custom_invoices_v8",
-  SETTINGS: "zaks_custom_settings_v8",
+  VEHICLES: "zaks_custom_inventory_v9",
+  CLIENTS: "zaks_custom_clients_v9",
+  PAYMENTS: "zaks_custom_payments_v9",
+  INVOICES: "zaks_custom_invoices_v9",
+  SETTINGS: "zaks_custom_settings_v9",
 };
 
 // Generic storage helper
