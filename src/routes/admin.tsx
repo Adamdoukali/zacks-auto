@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useId } from "react";
+import { useState, useEffect, useId } from "react";
 import {
   Car,
   Users,
@@ -31,9 +31,12 @@ import {
   KeyRound,
   LogOut,
   AlertTriangle,
+  Database,
   Phone,
   Mail,
   MapPin,
+  Check,
+  Copy,
 } from "lucide-react";
 import {
   useInventoryStore,
@@ -47,14 +50,21 @@ import {
   type Invoice,
   type InvoiceItem,
 } from "../lib/store";
+import {
+  verifyAdminCredentials,
+  isSessionValid,
+  terminateSession,
+  updateAdminCredentials,
+} from "../lib/auth-crypto";
+import { configureSupabase, isSupabaseConfigured, SUPABASE_SQL_SCHEMA } from "../lib/supabase";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Executive Admin Portal — Zack's Auto" },
+      { title: "Portal — Zack's Auto" },
       {
         name: "description",
-        content: "Secure admin console for vehicle inventory, client CRM, payments, and invoicing.",
+        content: "Authorized management console.",
       },
     ],
   }),
@@ -64,14 +74,22 @@ export const Route = createFileRoute("/admin")({
 type TabType = "overview" | "inventory" | "clients" | "payments" | "invoices" | "settings";
 
 function AdminPage() {
-  // Authentication Guard State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem("zaks_admin_auth") === "true";
-  });
-  const [passcode, setPasscode] = useState("");
-  const [passcodeError, setPasscodeError] = useState("");
-  const [showPasscode, setShowPasscode] = useState(false);
+  // Cryptographic Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check active session on load
+  useEffect(() => {
+    isSessionValid().then((valid) => {
+      setIsAuthenticated(valid);
+      setIsCheckingAuth(false);
+    });
+  }, []);
 
   const [currentTab, setCurrentTab] = useState<TabType>("overview");
   const { vehicles, addVehicle, updateVehicle, deleteVehicle, resetToDefault } = useInventoryStore();
@@ -94,30 +112,49 @@ function AdminPage() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [previewingInvoice, setPreviewingInvoice] = useState<Invoice | null>(null);
 
+  // Security Credentials Change State
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [securitySuccess, setSecuritySuccess] = useState(false);
+
+  // Supabase Configuration State
+  const [supabaseUrl, setSupabaseUrl] = useState("");
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
+  const [supabaseSuccess, setSupabaseSuccess] = useState(false);
+  const [copiedSchema, setCopiedSchema] = useState(false);
+
   // Authentication Handlers
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const storedMaster = localStorage.getItem("zaks_admin_master_pwd") || "zacks2026";
-    if (
-      passcode.trim() === storedMaster ||
-      passcode.trim() === "zacks2026" ||
-      passcode.trim() === "Zack@2026"
-    ) {
-      sessionStorage.setItem("zaks_admin_auth", "true");
+    setIsSubmitting(true);
+    setAuthError("");
+
+    const result = await verifyAdminCredentials(emailInput, passwordInput);
+    if (result.success) {
       setIsAuthenticated(true);
-      setPasscodeError("");
+      setAuthError("");
     } else {
-      setPasscodeError("Invalid authorization passcode. Access denied.");
+      setAuthError(result.error || "Authentication failed. Access denied.");
     }
+    setIsSubmitting(false);
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("zaks_admin_auth");
+    terminateSession();
     setIsAuthenticated(false);
-    setPasscode("");
+    setEmailInput("");
+    setPasswordInput("");
   };
 
-  // If not authenticated, render the Security Gate
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  // If not authenticated, render the Secure Login Gate
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
@@ -125,65 +162,94 @@ function AdminPage() {
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 size-96 rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 w-full max-w-md space-y-8 text-center">
-          {/* Logo */}
+          {/* Logo & Security Notice */}
           <div className="flex flex-col items-center gap-3">
             <img
               src="/logo.png"
-              alt="Zack's Auto Logo"
-              className="h-16 w-auto object-contain drop-shadow-md"
+              alt="Logo"
+              className="h-14 w-auto object-contain drop-shadow-md"
             />
             <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
-              <Lock className="size-3.5" /> Restricted Executive Area
+              <Lock className="size-3.5" /> Secure Portal Access
             </div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
-              Dealer Authorization Required
+            <h1 className="font-display text-2xl font-bold text-foreground">
+              Sign In to Management Console
             </h1>
             <p className="text-xs text-muted-foreground max-w-xs">
-              Enter your master passcode to access vehicle inventory, CRM records, and official invoices.
+              Authorized personnel only. Please verify your credentials to continue.
             </p>
           </div>
 
-          {/* Login Card */}
+          {/* Secure Login Card */}
           <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl space-y-5 text-left">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-foreground block">
-                  Master Security Passcode
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => {
+                      setEmailInput(e.target.value);
+                      if (authError) setAuthError("");
+                    }}
+                    required
+                    autoFocus
+                    placeholder="Enter authorized email"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-input bg-background text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-foreground block">
+                  Password
                 </label>
                 <div className="relative">
                   <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <input
-                    type={showPasscode ? "text" : "password"}
-                    value={passcode}
+                    type={showPassword ? "text" : "password"}
+                    value={passwordInput}
                     onChange={(e) => {
-                      setPasscode(e.target.value);
-                      if (passcodeError) setPasscodeError("");
+                      setPasswordInput(e.target.value);
+                      if (authError) setAuthError("");
                     }}
                     required
-                    autoFocus
-                    placeholder="Enter admin passcode (default: zacks2026)"
+                    placeholder="Enter password"
                     className="w-full pl-10 pr-10 py-3 rounded-xl border border-input bg-background text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPasscode(!showPasscode)}
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
                   >
-                    {showPasscode ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
-                {passcodeError && (
-                  <p className="text-xs font-semibold text-red-500 flex items-center gap-1 mt-1.5">
-                    <AlertTriangle className="size-3.5 shrink-0" /> {passcodeError}
-                  </p>
-                )}
               </div>
+
+              {authError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs font-semibold text-red-400 flex items-start gap-2">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                  <span>{authError}</span>
+                </div>
+              )}
 
               <button
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90 hover:scale-[1.01] transition-all shadow-lg shadow-primary/20"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90 hover:scale-[1.01] transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
               >
-                <Lock className="size-4" /> Unlock Admin Console
+                {isSubmitting ? (
+                  <div className="size-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                ) : (
+                  <>
+                    <Lock className="size-4" /> Sign In
+                  </>
+                )}
               </button>
             </form>
 
@@ -192,13 +258,13 @@ function AdminPage() {
                 to="/"
                 className="text-xs text-muted-foreground hover:text-primary transition-colors inline-block"
               >
-                ← Return to Public Website
+                ← Return to Website
               </Link>
             </div>
           </div>
 
           <p className="text-[11px] text-muted-foreground">
-            Zack's Auto Security Guard • Protected Financial Records
+            End-to-end encrypted session • 256-bit cryptographic verification
           </p>
         </div>
       </div>
@@ -1618,6 +1684,149 @@ function SettingsTab({
           </button>
         </div>
       </form>
+
+      {/* Security Credentials Management Section */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="size-5 text-primary" />
+            <div>
+              <h3 className="text-sm font-semibold font-display text-foreground">
+                Master Security & Credentials
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Update your private administrator email and high-entropy password.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const targetEmail = (e.currentTarget.elements.namedItem("adminEmail") as HTMLInputElement).value;
+            const targetPassword = (e.currentTarget.elements.namedItem("adminPassword") as HTMLInputElement).value;
+            if (targetEmail && targetPassword) {
+              await updateAdminCredentials(targetEmail, targetPassword);
+              alert("Admin credentials updated and encrypted successfully!");
+            }
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2"
+        >
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              New Admin Email
+            </label>
+            <input
+              name="adminEmail"
+              type="email"
+              required
+              placeholder="e.g. admin@zacksauto.ma"
+              className="w-full bg-background border border-border rounded-lg text-xs px-3 py-2 text-foreground focus:border-primary outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              New Master Password
+            </label>
+            <input
+              name="adminPassword"
+              type="password"
+              required
+              placeholder="Enter strong password"
+              className="w-full bg-background border border-border rounded-lg text-xs px-3 py-2 text-foreground focus:border-primary outline-none"
+            />
+          </div>
+          <div className="sm:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-5 py-2 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+            >
+              <KeyRound className="size-3.5" /> Update Admin Credentials
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Cloud Database (Supabase PostgreSQL) Section */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="size-5 text-primary" />
+            <div>
+              <h3 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
+                Cloud Database Integration (Supabase)
+                <span
+                  className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border ${
+                    isSupabaseConfigured
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                      : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                  }`}
+                >
+                  {isSupabaseConfigured ? "Connected (Cloud Sync Active)" : "Local Storage Mode"}
+                </span>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Connect your PostgreSQL database with Row-Level Security (RLS) to store invoices, CRM clients, and inventory.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const url = (e.currentTarget.elements.namedItem("sbUrl") as HTMLInputElement).value;
+            const key = (e.currentTarget.elements.namedItem("sbKey") as HTMLInputElement).value;
+            configureSupabase(url, key);
+            alert("Supabase credentials saved successfully! Cloud sync activated.");
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2"
+        >
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Supabase Project URL
+            </label>
+            <input
+              name="sbUrl"
+              type="url"
+              defaultValue={typeof window !== "undefined" ? localStorage.getItem("zaks_supabase_url") || "" : ""}
+              placeholder="https://xyzcompany.supabase.co"
+              className="w-full bg-background border border-border rounded-lg text-xs px-3 py-2 text-foreground focus:border-primary outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Supabase Anon / Public Key
+            </label>
+            <input
+              name="sbKey"
+              type="password"
+              defaultValue={typeof window !== "undefined" ? localStorage.getItem("zaks_supabase_anon_key") || "" : ""}
+              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+              className="w-full bg-background border border-border rounded-lg text-xs px-3 py-2 text-foreground focus:border-primary outline-none"
+            />
+          </div>
+          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(SUPABASE_SQL_SCHEMA);
+                alert("Supabase SQL Schema copied to clipboard! Paste it into Supabase SQL Editor.");
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-4 py-2 text-xs font-medium text-foreground hover:bg-secondary transition-colors"
+            >
+              <Copy className="size-3.5 text-primary" /> Copy Supabase SQL Schema (RLS)
+            </button>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm"
+            >
+              <Database className="size-3.5" /> Save Database Connection
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
