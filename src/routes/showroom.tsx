@@ -49,26 +49,33 @@ function ShowroomPage() {
   const [selectedFuel, setSelectedFuel] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedTransmission, setSelectedTransmission] = useState("all");
-  const [maxPrice, setMaxPrice] = useState<number>(150000);
+  const [sortBy, setSortBy] = useState<"high-to-low" | "low-to-high" | "newest" | "featured">("high-to-low");
 
   // Selected vehicle for details modal
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
-  const filteredVehicles = vehicles.filter((v) => {
-    const matchSearch =
-      v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (v.description && v.description.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredVehicles = vehicles
+    .filter((v) => {
+      const matchSearch =
+        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (v.description && v.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchFuel = selectedFuel === "all" || v.fuel === selectedFuel;
-    const matchStatus = selectedStatus === "all" || v.status === selectedStatus;
-    const matchTrans =
-      selectedTransmission === "all" || v.transmission === selectedTransmission;
-    const matchPrice = (v.price || 0) <= maxPrice;
+      const matchFuel = selectedFuel === "all" || v.fuel === selectedFuel;
+      const matchStatus = selectedStatus === "all" || v.status === selectedStatus;
+      const matchTrans =
+        selectedTransmission === "all" || v.transmission === selectedTransmission;
 
-    return matchSearch && matchFuel && matchStatus && matchTrans && matchPrice;
-  });
+      return matchSearch && matchFuel && matchStatus && matchTrans;
+    })
+    .sort((a, b) => {
+      if (sortBy === "high-to-low") return b.price - a.price;
+      if (sortBy === "low-to-high") return a.price - b.price;
+      if (sortBy === "newest") return b.year - a.year;
+      if (sortBy === "featured") return (b.tag === "Featured" ? 1 : 0) - (a.tag === "Featured" ? 1 : 0);
+      return 0;
+    });
 
   return (
     <div className="min-h-screen bg-background text-foreground py-12">
@@ -89,16 +96,16 @@ function ShowroomPage() {
 
         {/* Filter Controls Bar */}
         <div className="mt-8 rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {/* Search */}
-            <div className="relative">
+            <div className="relative lg:col-span-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search make, model, name..."
+                placeholder="Search make, model, specs (e.g. Urus, G63, Porsche)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground outline-none focus:border-primary transition-colors"
+                className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-xl text-xs text-foreground outline-none focus:border-primary transition-colors"
               />
             </div>
 
@@ -107,14 +114,14 @@ function ShowroomPage() {
               <select
                 value={selectedFuel}
                 onChange={(e) => setSelectedFuel(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground outline-none focus:border-primary transition-colors"
+                className="w-full px-3 py-2.5 bg-background border border-border rounded-xl text-xs text-foreground outline-none focus:border-primary transition-colors cursor-pointer"
               >
                 <option value="all">All Powertrains</option>
-                <option value="Hybrid">Hybrid</option>
                 <option value="Petrol">Petrol</option>
                 <option value="Diesel">Diesel</option>
-                <option value="Electric">Electric</option>
                 <option value="Plug-in Hybrid">Plug-in Hybrid</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="Electric">Electric</option>
               </select>
             </div>
 
@@ -123,52 +130,50 @@ function ShowroomPage() {
               <select
                 value={selectedTransmission}
                 onChange={(e) => setSelectedTransmission(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground outline-none focus:border-primary transition-colors"
+                className="w-full px-3 py-2.5 bg-background border border-border rounded-xl text-xs text-foreground outline-none focus:border-primary transition-colors cursor-pointer"
               >
                 <option value="all">All Transmissions</option>
+                <option value="Paddle-shift">Paddle-shift</option>
+                <option value="Dual-clutch">Dual-clutch (PDK/DSG)</option>
                 <option value="Automatic">Automatic</option>
                 <option value="Manual">Manual</option>
-                <option value="Paddle-shift">Paddle-shift</option>
-                <option value="Dual-clutch">Dual-clutch</option>
               </select>
             </div>
 
-            {/* Status */}
+            {/* Sort Filter (High to Low, Low to High, etc) */}
             <div>
               <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground outline-none focus:border-primary transition-colors"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="w-full px-3 py-2.5 bg-background border border-primary/40 rounded-xl text-xs text-primary font-semibold outline-none focus:border-primary transition-colors cursor-pointer"
               >
-                <option value="all">All Availability</option>
-                <option value="Available">Available Now</option>
-                <option value="Reserved">Reserved</option>
-                <option value="Sold">Sold Archive</option>
+                <option value="high-to-low">Price: High to Low ↓</option>
+                <option value="low-to-high">Price: Low to High ↑</option>
+                <option value="newest">Year: Newest First</option>
+                <option value="featured">Featured First</option>
               </select>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border/60 text-xs text-muted-foreground">
             <span>
-              Showing <strong className="text-foreground">{filteredVehicles.length}</strong>{" "}
-              vehicles matching criteria
+              Showing <strong className="text-foreground">{filteredVehicles.length}</strong> vehicles in stock
             </span>
-            <div className="flex items-center gap-2">
-              <span>Max Price:</span>
-              <span className="font-semibold text-primary">
-                {settings.currencySymbol}
-                {maxPrice.toLocaleString()}
-              </span>
-              <input
-                type="range"
-                min="20000"
-                max="150000"
-                step="5000"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(parseInt(e.target.value))}
-                className="accent-primary cursor-pointer w-28"
-              />
-            </div>
+            {(searchTerm || selectedFuel !== "all" || selectedTransmission !== "all" || selectedStatus !== "all" || sortBy !== "high-to-low") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedFuel("all");
+                  setSelectedTransmission("all");
+                  setSelectedStatus("all");
+                  setSortBy("high-to-low");
+                }}
+                className="text-xs font-semibold text-primary hover:underline"
+              >
+                Reset All Filters
+              </button>
+            )}
           </div>
         </div>
 
