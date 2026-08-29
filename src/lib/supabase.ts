@@ -3,10 +3,18 @@ import { createClient } from "@supabase/supabase-js";
 // Supabase Configuration from Environment or secure storage
 const DEFAULT_PROJECT_URL = "https://ksyhrgxdlzkignoqvbqh.supabase.co";
 
-const SUPABASE_URL =
-  typeof window !== "undefined"
-    ? localStorage.getItem("zaks_supabase_url") || (import.meta as any).env?.VITE_SUPABASE_URL || DEFAULT_PROJECT_URL
-    : DEFAULT_PROJECT_URL;
+export function sanitizeSupabaseUrl(rawUrl: string): string {
+  if (!rawUrl) return DEFAULT_PROJECT_URL;
+  let clean = rawUrl.trim().replace(/\/rest\/v1\/?$/, "").replace(/\/+$/, "");
+  if (!clean.startsWith("http")) {
+    clean = `https://${clean}`;
+  }
+  return clean;
+}
+
+const rawStoredUrl = typeof window !== "undefined" ? localStorage.getItem("zaks_supabase_url") || "" : "";
+const rawEnvUrl = (import.meta as any).env?.VITE_SUPABASE_URL || "";
+const SUPABASE_URL = sanitizeSupabaseUrl(rawStoredUrl || rawEnvUrl || DEFAULT_PROJECT_URL);
 
 const SUPABASE_ANON_KEY =
   typeof window !== "undefined"
@@ -29,7 +37,8 @@ export const supabase = isSupabaseConfigured
  */
 export function configureSupabase(url: string, anonKey: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem("zaks_supabase_url", url.trim());
+  const cleanUrl = sanitizeSupabaseUrl(url);
+  localStorage.setItem("zaks_supabase_url", cleanUrl);
   localStorage.setItem("zaks_supabase_anon_key", anonKey.trim());
   window.dispatchEvent(new CustomEvent("zaks_supabase_configured"));
 }
