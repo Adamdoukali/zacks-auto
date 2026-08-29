@@ -1802,7 +1802,7 @@ function SettingsTab({
             <input
               name="sbKey"
               type="password"
-              defaultValue={typeof window !== "undefined" ? localStorage.getItem("zaks_supabase_anon_key") || "" : ""}
+              defaultValue={typeof window !== "undefined" ? localStorage.getItem("zaks_supabase_anon_key") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeWhyZ3hkbHpraWdub3F2YnFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMjI0NjksImV4cCI6MjEwMzU5ODQ2OX0.VLpDz8OWLvJaCg-Qhx2XswBpG5_cRBBsZWJTN8lAwKY" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeWhyZ3hkbHpraWdub3F2YnFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMjI0NjksImV4cCI6MjEwMzU5ODQ2OX0.VLpDz8OWLvJaCg-Qhx2XswBpG5_cRBBsZWJTN8lAwKY"}
               placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
               className="w-full bg-background border border-border rounded-lg text-xs px-3 py-2 text-foreground focus:border-primary outline-none"
             />

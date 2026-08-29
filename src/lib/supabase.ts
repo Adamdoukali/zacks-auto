@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 // Supabase Configuration from Environment or secure storage
 const DEFAULT_PROJECT_URL = "https://ksyhrgxdlzkignoqvbqh.supabase.co";
+const DEFAULT_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzeWhyZ3hkbHpraWdub3F2YnFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMjI0NjksImV4cCI6MjEwMzU5ODQ2OX0.VLpDz8OWLvJaCg-Qhx2XswBpG5_cRBBsZWJTN8lAwKY";
 
 export function sanitizeSupabaseUrl(rawUrl: string): string {
   if (!rawUrl) return DEFAULT_PROJECT_URL;
@@ -18,8 +20,8 @@ const SUPABASE_URL = sanitizeSupabaseUrl(rawStoredUrl || rawEnvUrl || DEFAULT_PR
 
 const SUPABASE_ANON_KEY =
   typeof window !== "undefined"
-    ? localStorage.getItem("zaks_supabase_anon_key") || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || ""
-    : "";
+    ? localStorage.getItem("zaks_supabase_anon_key") || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || DEFAULT_ANON_KEY
+    : DEFAULT_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
