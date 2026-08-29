@@ -1,0 +1,156 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Dealership & Showroom Design System
+ *
+ * Cinematic dark luxury palette with warm amber/gold accents.
+ * High-contrast print-ready stylesheets for invoices.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-charcoal: var(--charcoal);
+  --color-charcoal-foreground: var(--charcoal-foreground);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Deep showroom dark */
+  --background: oklch(0.145 0.01 264);
+  --foreground: oklch(0.97 0.005 264);
+  --card: oklch(0.185 0.015 264);
+  --card-foreground: oklch(0.97 0.005 264);
+  --popover: oklch(0.185 0.015 264);
+  --popover-foreground: oklch(0.97 0.005 264);
+
+  /* Zack's Auto signature vibrant sports yellow matching logo */
+  --primary: oklch(0.88 0.19 98);
+  --primary-foreground: oklch(0.12 0.02 98);
+  --secondary: oklch(0.22 0.02 264);
+  --secondary-foreground: oklch(0.97 0.005 264);
+  --muted: oklch(0.25 0.015 264);
+  --muted-foreground: oklch(0.65 0.02 264);
+  --accent: oklch(0.88 0.19 98);
+  --accent-foreground: oklch(0.12 0.02 98);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.97 0.005 264);
+
+  --border: oklch(0.25 0.015 264);
+  --input: oklch(0.25 0.015 264);
+  --ring: oklch(0.88 0.19 98);
+
+  --gold: oklch(0.88 0.19 98);
+  --gold-foreground: oklch(0.12 0.02 98);
+  --charcoal: oklch(0.18 0.015 264);
+  --charcoal-foreground: oklch(0.97 0.005 264);
+
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+}
+
+.theme-light {
+  --background: oklch(0.98 0.005 264);
+  --foreground: oklch(0.15 0.01 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.01 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.01 264);
+  --secondary: oklch(0.94 0.01 264);
+  --secondary-foreground: oklch(0.15 0.01 264);
+  --muted: oklch(0.92 0.01 264);
+  --muted-foreground: oklch(0.45 0.01 264);
+  --border: oklch(0.88 0.01 264);
+  --input: oklch(0.88 0.01 264);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility gradient-gold {
+  background: linear-gradient(135deg, oklch(0.72 0.14 75), oklch(0.55 0.12 65));
+}
+
+@utility glow-gold {
+  box-shadow: 0 0 40px oklch(0.72 0.14 75 / 0.15);
+}
+
+/* Print Specific Rules */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  header, footer, nav, button, .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\:max-h-none {
+    max-height: none !important;
+  }
+}
