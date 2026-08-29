@@ -1,10 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Supabase Configuration from Environment or secure storage
+const DEFAULT_PROJECT_URL = "https://ksyhrgxdlzkignoqvbqh.supabase.co";
+
 const SUPABASE_URL =
   typeof window !== "undefined"
-    ? localStorage.getItem("zaks_supabase_url") || (import.meta as any).env?.VITE_SUPABASE_URL || ""
-    : "";
+    ? localStorage.getItem("zaks_supabase_url") || (import.meta as any).env?.VITE_SUPABASE_URL || DEFAULT_PROJECT_URL
+    : DEFAULT_PROJECT_URL;
 
 const SUPABASE_ANON_KEY =
   typeof window !== "undefined"

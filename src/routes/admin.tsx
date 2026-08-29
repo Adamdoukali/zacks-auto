@@ -1790,8 +1790,8 @@ function SettingsTab({
             <input
               name="sbUrl"
               type="url"
-              defaultValue={typeof window !== "undefined" ? localStorage.getItem("zaks_supabase_url") || "" : ""}
-              placeholder="https://xyzcompany.supabase.co"
+              defaultValue={typeof window !== "undefined" ? localStorage.getItem("zaks_supabase_url") || "https://ksyhrgxdlzkignoqvbqh.supabase.co" : "https://ksyhrgxdlzkignoqvbqh.supabase.co"}
+              placeholder="https://ksyhrgxdlzkignoqvbqh.supabase.co"
               className="w-full bg-background border border-border rounded-lg text-xs px-3 py-2 text-foreground focus:border-primary outline-none"
             />
           </div>
