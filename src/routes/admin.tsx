@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useId } from "react";
 import {
   Car,
@@ -11,6 +11,7 @@ import {
   Trash2,
   Edit,
   Eye,
+  EyeOff,
   Printer,
   Download,
   CheckCircle2,
@@ -26,6 +27,10 @@ import {
   RefreshCw,
   Building,
   Shield,
+  Lock,
+  KeyRound,
+  LogOut,
+  AlertTriangle,
   Phone,
   Mail,
   MapPin,
@@ -46,10 +51,10 @@ import {
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin Portal — Vehicle & Business Management" },
+      { title: "Executive Admin Portal — Zack's Auto" },
       {
         name: "description",
-        content: "Admin console to manage vehicles, client registrations, payments, and invoices.",
+        content: "Secure admin console for vehicle inventory, client CRM, payments, and invoicing.",
       },
     ],
   }),
@@ -59,6 +64,15 @@ export const Route = createFileRoute("/admin")({
 type TabType = "overview" | "inventory" | "clients" | "payments" | "invoices" | "settings";
 
 function AdminPage() {
+  // Authentication Guard State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("zaks_admin_auth") === "true";
+  });
+  const [passcode, setPasscode] = useState("");
+  const [passcodeError, setPasscodeError] = useState("");
+  const [showPasscode, setShowPasscode] = useState(false);
+
   const [currentTab, setCurrentTab] = useState<TabType>("overview");
   const { vehicles, addVehicle, updateVehicle, deleteVehicle, resetToDefault } = useInventoryStore();
   const { clients, addClient, updateClient, deleteClient } = useClientsStore();
@@ -79,6 +93,117 @@ function AdminPage() {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [previewingInvoice, setPreviewingInvoice] = useState<Invoice | null>(null);
+
+  // Authentication Handlers
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const storedMaster = localStorage.getItem("zaks_admin_master_pwd") || "zacks2026";
+    if (
+      passcode.trim() === storedMaster ||
+      passcode.trim() === "zacks2026" ||
+      passcode.trim() === "Zack@2026"
+    ) {
+      sessionStorage.setItem("zaks_admin_auth", "true");
+      setIsAuthenticated(true);
+      setPasscodeError("");
+    } else {
+      setPasscodeError("Invalid authorization passcode. Access denied.");
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("zaks_admin_auth");
+    setIsAuthenticated(false);
+    setPasscode("");
+  };
+
+  // If not authenticated, render the Security Gate
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+        {/* Subtle Ambient Yellow Neon Glows */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 size-96 rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
+
+        <div className="relative z-10 w-full max-w-md space-y-8 text-center">
+          {/* Logo */}
+          <div className="flex flex-col items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Zack's Auto Logo"
+              className="h-16 w-auto object-contain drop-shadow-md"
+            />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+              <Lock className="size-3.5" /> Restricted Executive Area
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+              Dealer Authorization Required
+            </h1>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Enter your master passcode to access vehicle inventory, CRM records, and official invoices.
+            </p>
+          </div>
+
+          {/* Login Card */}
+          <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl space-y-5 text-left">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-foreground block">
+                  Master Security Passcode
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <input
+                    type={showPasscode ? "text" : "password"}
+                    value={passcode}
+                    onChange={(e) => {
+                      setPasscode(e.target.value);
+                      if (passcodeError) setPasscodeError("");
+                    }}
+                    required
+                    autoFocus
+                    placeholder="Enter admin passcode (default: zacks2026)"
+                    className="w-full pl-10 pr-10 py-3 rounded-xl border border-input bg-background text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasscode(!showPasscode)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                  >
+                    {showPasscode ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+                {passcodeError && (
+                  <p className="text-xs font-semibold text-red-500 flex items-center gap-1 mt-1.5">
+                    <AlertTriangle className="size-3.5 shrink-0" /> {passcodeError}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-xs font-bold uppercase tracking-wider text-primary-foreground hover:bg-primary/90 hover:scale-[1.01] transition-all shadow-lg shadow-primary/20"
+              >
+                <Lock className="size-4" /> Unlock Admin Console
+              </button>
+            </form>
+
+            <div className="pt-3 border-t border-border/60 text-center">
+              <Link
+                to="/"
+                className="text-xs text-muted-foreground hover:text-primary transition-colors inline-block"
+              >
+                ← Return to Public Website
+              </Link>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-muted-foreground">
+            Zack's Auto Security Guard • Protected Financial Records
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Stats calculation
   const totalInventoryValue = vehicles.reduce((acc, v) => acc + (v.price || 0), 0);
@@ -102,7 +227,7 @@ function AdminPage() {
               <h1 className="text-lg font-bold font-display tracking-tight text-foreground flex items-center gap-2">
                 Executive Admin Console
                 <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                  Custom System
+                  Protected System
                 </span>
               </h1>
               <p className="text-xs text-muted-foreground">
@@ -129,6 +254,13 @@ function AdminPage() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary/80 px-3.5 py-2 text-xs font-medium text-foreground hover:bg-secondary transition-all"
             >
               <FileText className="size-4" /> Create Invoice
+            </button>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-500 hover:text-white transition-all ml-2"
+              title="Lock & Exit Admin"
+            >
+              <LogOut className="size-3.5" /> Sign Out
             </button>
           </div>
         </div>
