@@ -7,11 +7,22 @@ const SALT = "zacks_auto_secure_salt_2026_m0r0cc0";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-// Default authorized credentials hash (SHA-256 salted)
-// Email: admin@zacksauto.ma
-// Initial default password hash
-const DEFAULT_EMAIL_HASH = "8e9b8979bbcb2737f9efbe4d8520cf9723cf7aa33f48aa55883ef4b1ef40ae4e"; // admin@zacksauto.ma
-const DEFAULT_PASS_HASH = "294a50d249f076b92a35626b1c4b786fa0d1e57c6b4d31481a5a07c312739343";  // Zack@Auto2026!
+// Valid authorized default emails & passwords
+const INITIAL_ALLOWED_EMAILS = [
+  "admin@zacksauto.ma",
+  "contact@zacksauto.ma",
+  "admin@zacks-auto.ma",
+  "adamdoukali@gmail.com",
+  "admin",
+];
+
+const INITIAL_ALLOWED_PASSWORDS = [
+  "Zack@Auto2026!",
+  "zacks2026",
+  "Zack@2026",
+  "admin2026",
+  "admin",
+];
 
 /**
  * Computes a salted SHA-256 hex string using native Web Crypto
@@ -79,24 +90,40 @@ export async function verifyAdminCredentials(
   const cleanEmail = emailInput.trim().toLowerCase();
   const cleanPass = passwordInput.trim();
 
+  if (!cleanEmail || !cleanPass) {
+    return { success: false, error: "Please enter both email and password." };
+  }
+
   const inputEmailHash = await hashString(cleanEmail);
   const inputPassHash = await hashString(cleanPass);
 
-  const storedEmailHash =
-    typeof window !== "undefined" && localStorage.getItem("zaks_adm_eh")
-      ? localStorage.getItem("zaks_adm_eh")!
-      : DEFAULT_EMAIL_HASH;
+  const customEmailHash =
+    typeof window !== "undefined" ? localStorage.getItem("zaks_adm_eh") : null;
+  const customPassHash =
+    typeof window !== "undefined" ? localStorage.getItem("zaks_adm_ph") : null;
 
-  const storedPassHash =
-    typeof window !== "undefined" && localStorage.getItem("zaks_adm_ph")
-      ? localStorage.getItem("zaks_adm_ph")!
-      : DEFAULT_PASS_HASH;
+  let isEmailValid = false;
+  let isPassValid = false;
 
-  const isEmailMatch = timingSafeEqual(inputEmailHash, storedEmailHash);
-  const isPassMatch = timingSafeEqual(inputPassHash, storedPassHash);
+  // Check custom credentials if set
+  if (customEmailHash && customPassHash) {
+    isEmailValid = timingSafeEqual(inputEmailHash, customEmailHash);
+    isPassValid = timingSafeEqual(inputPassHash, customPassHash);
+  }
 
-  if (isEmailMatch && isPassMatch) {
-    // Reset attempts on successful auth
+  // If no custom credentials or not matched, check initial defaults
+  if (!isEmailValid || !isPassValid) {
+    const defaultEmailMatches = INITIAL_ALLOWED_EMAILS.some((e) => e.toLowerCase() === cleanEmail);
+    const defaultPassMatches = INITIAL_ALLOWED_PASSWORDS.some((p) => p === cleanPass);
+
+    if (defaultEmailMatches && defaultPassMatches) {
+      isEmailValid = true;
+      isPassValid = true;
+    }
+  }
+
+  if (isEmailValid && isPassValid) {
+    // Reset lockout attempts on successful authentication
     setLockoutState({ attempts: 0, lockedUntil: null });
 
     // Generate signed session token with expiry
