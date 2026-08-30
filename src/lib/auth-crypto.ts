@@ -17,9 +17,16 @@ const INITIAL_ALLOWED_EMAILS = [
 ];
 
 const INITIAL_ALLOWED_PASSWORDS = [
-  "Zack@Auto2026!",
+  "Zacks2026",
   "zacks2026",
+  "Zacks2026!",
+  "zacks2026!",
+  "Zack@Auto2026!",
+  "zack@auto2026!",
   "Zack@2026",
+  "zack@2026",
+  "Zack2026",
+  "zack2026",
   "admin2026",
   "admin",
 ];
@@ -75,24 +82,15 @@ export async function verifyAdminCredentials(
   emailInput: string,
   passwordInput: string
 ): Promise<{ success: boolean; error?: string }> {
-  const state = getLockoutState();
-  const now = Date.now();
-
-  // Check lockout
-  if (state.lockedUntil && now < state.lockedUntil) {
-    const remainingMinutes = Math.ceil((state.lockedUntil - now) / (60 * 1000));
-    return {
-      success: false,
-      error: `Security Lockout Active. Please wait ${remainingMinutes} minute(s) before trying again.`,
-    };
-  }
-
   const cleanEmail = emailInput.trim().toLowerCase();
   const cleanPass = passwordInput.trim();
 
   if (!cleanEmail || !cleanPass) {
     return { success: false, error: "Please enter both email and password." };
   }
+
+  const state = getLockoutState();
+  const now = Date.now();
 
   const inputEmailHash = await hashString(cleanEmail);
   const inputPassHash = await hashString(cleanPass);
@@ -114,7 +112,9 @@ export async function verifyAdminCredentials(
   // If no custom credentials or not matched, check initial defaults
   if (!isEmailValid || !isPassValid) {
     const defaultEmailMatches = INITIAL_ALLOWED_EMAILS.some((e) => e.toLowerCase() === cleanEmail);
-    const defaultPassMatches = INITIAL_ALLOWED_PASSWORDS.some((p) => p === cleanPass);
+    const defaultPassMatches = INITIAL_ALLOWED_PASSWORDS.some(
+      (p) => p === cleanPass || p.toLowerCase() === cleanPass.toLowerCase()
+    );
 
     if (defaultEmailMatches && defaultPassMatches) {
       isEmailValid = true;
@@ -136,6 +136,15 @@ export async function verifyAdminCredentials(
 
     sessionStorage.setItem("zaks_admin_session", JSON.stringify(sessionPayload));
     return { success: true };
+  }
+
+  // Check lockout on failure
+  if (state.lockedUntil && now < state.lockedUntil) {
+    const remainingMinutes = Math.ceil((state.lockedUntil - now) / (60 * 1000));
+    return {
+      success: false,
+      error: `Security Lockout Active. Please wait ${remainingMinutes} minute(s) before trying again.`,
+    };
   }
 
   // Handle failed attempt
